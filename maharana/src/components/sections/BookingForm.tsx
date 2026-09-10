@@ -1,57 +1,159 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { rooms } from "@/data/rooms";
 
-interface SearchParams {
+interface BookingDetails {
+  name: string;
+  email: string;
+  phone: string;
   checkIn: string;
   checkOut: string;
   guests: number;
   roomType: string;
 }
 
-const initialParams: SearchParams = {
+const initialDetails: BookingDetails = {
+  name: "",
+  email: "",
+  phone: "",
   checkIn: "",
   checkOut: "",
   guests: 2,
   roomType: "any",
 };
 
-/**
- * UI-only booking search. Structured so a real availability API
- * (e.g. POST /api/availability) can replace `runSearch` without touching
- * the form markup. Deliberately does not fabricate real availability —
- * results are clearly labelled as illustrative until a booking engine
- * is connected.
- */
 export default function BookingForm() {
-  const [params, setParams] = useState<SearchParams>(initialParams);
-  const [searched, setSearched] = useState(false);
+  const [details, setDetails] = useState<BookingDetails>(initialDetails);
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e: FormEvent) => {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setSearched(true);
+    setStatus("submitting");
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(details),
+      });
+
+      const result = (await response.json()) as { message?: string; bookingId?: string };
+
+      if (!response.ok) {
+        throw new Error(result.message || "Unable to submit your booking request.");
+      }
+
+      setBookingId(result.bookingId || null);
+      setStatus("success");
+      setDetails(initialDetails);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to submit your booking request.",
+      );
+      setStatus("error");
+    }
   };
 
-  const matchingRooms =
-    params.roomType === "any" ? rooms : rooms.filter((r) => r.category === params.roomType);
+  if (status === "success") {
+    return (
+      <div className="border border-brass/30 bg-brass/5 p-8 text-center md:p-10" role="status">
+        <p className="label text-brass-soft">Request received</p>
+        <h2 className="mt-4 font-display text-3xl text-parchment">Thank you.</h2>
+        <p className="mx-auto mt-4 max-w-xl text-parchment/70">
+          Your stay request has been saved. Our reservations team will contact you to confirm room
+          availability and complete the booking.
+        </p>
+        {bookingId && (
+          <p className="mt-5 text-sm text-muted-ink">Booking reference: #{bookingId}</p>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setBookingId(null);
+            setStatus("idle");
+          }}
+          className="label mt-8 border border-parchment px-7 py-4 text-parchment transition-colors duration-500 hover:bg-parchment hover:text-ink"
+        >
+          Make another request
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 gap-6 border border-parchment/10 p-8 sm:grid-cols-2 md:grid-cols-4 md:items-end md:p-10"
-      >
+    <form
+      onSubmit={handleSubmit}
+      className="grid grid-cols-1 gap-6 border border-parchment/10 p-8 sm:grid-cols-2 md:p-10"
+      aria-busy={status === "submitting"}
+    >
+      <div>
+        <label htmlFor="name" className="label mb-2 block text-muted-ink">
+          Full Name
+        </label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          autoComplete="name"
+          required
+          minLength={2}
+          maxLength={100}
+          value={details.name}
+          onChange={(e) => setDetails((value) => ({ ...value, name: e.target.value }))}
+          className="w-full border-b border-parchment/20 bg-transparent py-3 text-parchment outline-none transition-colors focus:border-brass"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="email" className="label mb-2 block text-muted-ink">
+          Email
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          maxLength={254}
+          value={details.email}
+          onChange={(e) => setDetails((value) => ({ ...value, email: e.target.value }))}
+          className="w-full border-b border-parchment/20 bg-transparent py-3 text-parchment outline-none transition-colors focus:border-brass"
+        />
+      </div>
+
+      <div className="sm:col-span-2">
+        <label htmlFor="phone" className="label mb-2 block text-muted-ink">
+          Phone (optional)
+        </label>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          maxLength={30}
+          value={details.phone}
+          onChange={(e) => setDetails((value) => ({ ...value, phone: e.target.value }))}
+          className="w-full border-b border-parchment/20 bg-transparent py-3 text-parchment outline-none transition-colors focus:border-brass"
+        />
+      </div>
+
         <div>
           <label htmlFor="checkIn" className="label mb-2 block text-muted-ink">
             Check-in
           </label>
           <input
             id="checkIn"
+            name="checkIn"
             type="date"
             required
-            value={params.checkIn}
-            onChange={(e) => setParams((p) => ({ ...p, checkIn: e.target.value }))}
+            min={today}
+            value={details.checkIn}
+            onChange={(e) => setDetails((value) => ({ ...value, checkIn: e.target.value }))}
             className="w-full border-b border-parchment/20 bg-transparent py-3 text-parchment outline-none transition-colors focus:border-brass [color-scheme:dark]"
           />
         </div>
@@ -62,10 +164,12 @@ export default function BookingForm() {
           </label>
           <input
             id="checkOut"
+            name="checkOut"
             type="date"
             required
-            value={params.checkOut}
-            onChange={(e) => setParams((p) => ({ ...p, checkOut: e.target.value }))}
+            min={details.checkIn || today}
+            value={details.checkOut}
+            onChange={(e) => setDetails((value) => ({ ...value, checkOut: e.target.value }))}
             className="w-full border-b border-parchment/20 bg-transparent py-3 text-parchment outline-none transition-colors focus:border-brass [color-scheme:dark]"
           />
         </div>
@@ -76,8 +180,11 @@ export default function BookingForm() {
           </label>
           <select
             id="guests"
-            value={params.guests}
-            onChange={(e) => setParams((p) => ({ ...p, guests: Number(e.target.value) }))}
+            name="guests"
+            value={details.guests}
+            onChange={(e) =>
+              setDetails((value) => ({ ...value, guests: Number(e.target.value) }))
+            }
             className="w-full border-b border-parchment/20 bg-transparent py-3 text-parchment outline-none transition-colors focus:border-brass"
           >
             {[1, 2, 3, 4].map((n) => (
@@ -94,8 +201,9 @@ export default function BookingForm() {
           </label>
           <select
             id="roomType"
-            value={params.roomType}
-            onChange={(e) => setParams((p) => ({ ...p, roomType: e.target.value }))}
+            name="roomType"
+            value={details.roomType}
+            onChange={(e) => setDetails((value) => ({ ...value, roomType: e.target.value }))}
             className="w-full border-b border-parchment/20 bg-transparent py-3 text-parchment outline-none transition-colors focus:border-brass"
           >
             <option value="any" className="bg-ink">Any</option>
@@ -104,46 +212,19 @@ export default function BookingForm() {
           </select>
         </div>
 
-        <button
-          type="submit"
-          className="label border border-parchment px-7 py-4 text-parchment transition-colors duration-500 hover:bg-parchment hover:text-ink sm:col-span-2 md:col-span-4"
-        >
-          Search Available Rooms
-        </button>
-      </form>
-
-      {searched && (
-        <div className="mt-12">
-          <p className="label mb-8 text-muted-ink">
-            Showing {matchingRooms.length} room{matchingRooms.length === 1 ? "" : "s"} matching your
-            search
-          </p>
-          <div className="mb-8 border border-brass/30 bg-brass/5 px-6 py-4 text-sm text-parchment/70">
-            Live availability is not yet connected — this is a preview of matching rooms and rates.
-            To confirm a real reservation, please contact our reservations team.
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2">
-            {matchingRooms.map((room) => (
-              <div key={room.id} className="border border-parchment/10 p-6">
-                <p className="font-display text-xl text-parchment">{room.name}</p>
-                <p className="mt-2 text-sm text-parchment/60">
-                  {room.size} · {room.guests} Guests · {room.bed}
-                </p>
-                <p className="mt-4 font-display text-2xl text-parchment">
-                  ₹{room.price.toLocaleString("en-IN")}
-                  <span className="ml-1 text-xs text-muted">/ night</span>
-                </p>
-                <a
-                  href="/contact"
-                  className="label mt-5 inline-block border border-parchment/40 px-5 py-3 text-parchment transition-colors duration-500 hover:border-parchment"
-                >
-                  Enquire to Book
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
+      {status === "error" && (
+        <p className="sm:col-span-2 text-sm text-brass-soft" role="alert">
+          {errorMessage}
+        </p>
       )}
-    </div>
+
+      <button
+        type="submit"
+        disabled={status === "submitting"}
+        className="label border border-parchment px-7 py-4 text-parchment transition-colors duration-500 hover:bg-parchment hover:text-ink disabled:cursor-wait disabled:opacity-60 sm:col-span-2"
+      >
+        {status === "submitting" ? "Sending Request…" : "Request to Book"}
+      </button>
+    </form>
   );
 }

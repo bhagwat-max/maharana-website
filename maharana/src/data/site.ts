@@ -1,0 +1,30 @@
+export const site = {
+  name: "The Maharana",
+  tagline: "Where history lives beautifully.",
+  city: "Ahmedabad",
+  state: "Gujarat",
+  country: "India",
+  founded: 1928,
+  email: "bhagwatdixit55@gmail.com",
+  phone: "+9664763492",
+  phoneDisplay: "+9664763492",
+  address: "Bhadra Fort Road, Ahmedabad, Gujarat 380001, India",
+  social: {
+    instagram: "https://www.instagram.com/bhagwatbuilds88/",
+    facebook: "https://facebook.com",
+  },
+  nav: [
+    { label: "Stay", href: "/rooms" },
+    { label: "Dine", href: "/dining" },
+    { label: "Experience", href: "/experiences" },
+    { label: "Heritage", href: "/heritage" },
+  ],
+  navMobile: [
+    { label: "Stay", href: "/rooms" },
+    { label: "Dining", href: "/dining" },
+    { label: "Experiences", href: "/experiences" },
+    { label: "Our Story", href: "/heritage" },
+    { label: "Gallery", href: "/gallery" },
+    { label: "Contact", href: "/contact" },
+  ],
+} as const;

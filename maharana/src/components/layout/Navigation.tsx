@@ -32,7 +32,7 @@ export default function Navigation() {
           scrolled ? "bg-ink/90 backdrop-blur-md py-4" : "bg-transparent py-7"
         }`}
       >
-        <nav className="mx-auto flex max-w-[1600px] items-center justify-between px-6 md:px-10">
+       <nav className="mx-auto grid max-w-[1600px] grid-cols-[1fr_auto_1fr] items-center px-6 md:px-10">
           <Link href="/" className="font-display text-lg tracking-[0.08em] text-parchment md:text-xl">
             THE MAHARANA
           </Link>
@@ -47,7 +47,7 @@ export default function Navigation() {
             ))}
           </ul>
 
-          <div className="flex items-center gap-5">
+        <div className="col-start-3 row-start-1 flex items-center gap-5 justify-self-end">
             <ThemeToggle />
 
             <Link

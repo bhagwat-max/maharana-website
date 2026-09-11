@@ -6,6 +6,7 @@ import CustomCursor from "@/components/ui/CustomCursor";
 import Loader from "@/components/ui/Loader";
 import ThemeProvider from "@/components/providers/ThemeProvider";
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
+import AIHotelAssistant from "@/components/ui/AIHotelAssistant";
 import { site } from "@/data/site";
 
 export const metadata: Metadata = {
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navigation />
           <main className="flex-1">{children}</main>
           <Footer />
+          <AIHotelAssistant />
           <WhatsAppButton />
         </ThemeProvider>
       </body>
